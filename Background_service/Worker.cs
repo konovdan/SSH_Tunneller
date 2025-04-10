@@ -1,84 +1,68 @@
-using System;
-using System.IO;
-using System.Windows;
 using Renci.SshNet;
-using System.Text.Json;
+using System.Diagnostics;
 
 namespace Background_service
 {
-    public class Config
+    public partial class Worker : BackgroundServiceRPC.BackgroundService.BackgroundServiceBase
     {
-        public string ip_addr { get; set; }
-        public int port { get; set; }
-        public string username { get; set; }
-        public string password { get; set; }
-    }
-    public class Worker : BackgroundService
-    {
+        private SshClient ssh_client;
+        private Config config;
         private readonly ILogger<Worker> _logger;
-        private SshClient client;
-        private string path;
-        public Worker(ILogger<Worker> logger)
+        public Worker() {
+            config = new Config();
+            ssh_client = new SshClient(config.ssh_config.ip_addr, config.ssh_config.port, config.ssh_config.username, config.ssh_config.password);
+        }
+        void start_proxy()
         {
-            _logger = logger;
+            string cmd = "winhttp set advproxy setting-scope=user settings={"+
+                $"\\\"Proxy\\\":\\\"{config.proxy_config.Proxy}\\\"," +
+                $"\\\"ProxyBypass\\\":\\\"{config.proxy_config.ProxyBypass}\\\"," +
+                $"\\\"AutoconfigUrl\\\":\\\"{config.proxy_config.AutoconfigUrl}\\\"," +
+                $"\\\"AutoDetect\\\":{config.proxy_config.AutoDetect.ToString().ToLower()}" +
+                "}";
+            Process process = new Process();
+            ProcessStartInfo processStartInfo= new ProcessStartInfo();
+            //processStartInfo.WindowStyle = ProcessWindowStyle.Hidden();
+            processStartInfo.FileName = "netsh";
+            processStartInfo.Arguments = cmd;
+            process.StartInfo = processStartInfo;
+            process.Start();
+        }
+        void stop_proxy()
+        {
+            string cmd = "winhttp set advproxy setting-scope=user settings={" +
+                $"\\\"Proxy\\\":\\\"\\\"," +
+                $"\\\"ProxyBypass\\\":\\\"\\\"," +
+                $"\\\"AutoconfigUrl\\\":\\\"\\\"," +
+                $"\\\"AutoDetect\\\":{config.proxy_config.AutoDetect.ToString().ToLower()}" +
+                "}";
+            Process process = new Process();
+            ProcessStartInfo processStartInfo = new ProcessStartInfo();
+            //processStartInfo.WindowStyle = ProcessWindowStyle.Hidden();
+            processStartInfo.FileName = "netsh";
+            processStartInfo.Arguments = cmd;
+            process.StartInfo = processStartInfo;
+            process.Start();
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        void connect_ssh()
         {
-            while (!stoppingToken.IsCancellationRequested)
+            ssh_client.Connect();
+            if (ssh_client.IsConnected)
             {
-                if (_logger.IsEnabled(LogLevel.Information))
-                {
-                    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                }
-                await Task.Delay(1000, stoppingToken);
-            }
-        }
-
-        void connect_ssh(object sender, RoutedEventArgs e)
-        {
-            client = new SshClient(ip_address.Text, int.Parse(port.Text), username.Text, password.Text);
-            client.Connect();
-            if (client.IsConnected)
-            {
-                save_config();
+                config.save_config();
             }
             var portForward = new ForwardedPortDynamic("127.0.0.1", 6030);
-            client.AddForwardedPort(portForward);
+            ssh_client.AddForwardedPort(portForward);
             portForward.Start();
 
         }
-        void disconnect_ssh(object sender, RoutedEventArgs e)
+        void disconnect_ssh()
         {
-            if (client != null && client.IsConnected)
+            if (ssh_client != null && ssh_client.IsConnected)
             {
-                client.Disconnect();
+                ssh_client.Disconnect();
             }
-        }
-
-        void load_config()
-        {
-            if (File.Exists(path))
-            {
-                File.ReadAllText(path);
-                Config conf = JsonSerializer.Deserialize<Config>(File.ReadAllText(path));
-                ip_address.Text = conf.ip_addr;
-                port.Text = String.Concat(conf.port);
-                username.Text = conf.username;
-                password.Text = conf.password;
-            }
-        }
-        void save_config()
-        {
-            String result = String.Empty;
-            Config conf = new Config();
-            conf.ip_addr = ip_address.Text;
-            conf.port = Convert.ToInt32(port.Text);
-            conf.username = username.Text;
-            conf.password = password.Text;
-
-            File.WriteAllText(path, JsonSerializer.Serialize<Config>(conf));
-
         }
     }
 }

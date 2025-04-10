@@ -5,10 +5,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-Background_service-01d65cf7-5a29-4386-957a-4f4bd708f69d</UserSecretsId>
+	  <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.70.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.3" />
     <PackageReference Include="SSH.NET" Version="2024.2.0" />
   </ItemGroup>
+	<ItemGroup>
+		<Protobuf Include="Protos\BackgroundService.proto" GrpcServices="Server" />
+	</ItemGroup>
+
+
 </Project>
