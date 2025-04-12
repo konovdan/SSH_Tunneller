@@ -5,9 +5,9 @@ namespace Background_service
 {
     public partial class Worker : BackgroundServiceRPC.BackgroundService.BackgroundServiceBase
     {
-        public override Task<Config> GetConfig(Empty request, ServerCallContext context)
+        public override Task<Configuration> GetConfig(Empty request, ServerCallContext context)
         {
-            return Task.FromResult(new Config
+            return Task.FromResult(new Configuration
             {
                 IpAddress = config.ssh_config.ip_addr,
                 Port = config.ssh_config.port.ToString(),    
@@ -16,7 +16,7 @@ namespace Background_service
             });
         }
 
-        public override Task<Empty> SetConfig(Config request, ServerCallContext context)
+        public override Task<Empty> SetConfig(Configuration request, ServerCallContext context)
         {
             config.ssh_config.ip_addr = request.IpAddress;
             config.ssh_config.port = Convert.ToInt32(request.Port);
