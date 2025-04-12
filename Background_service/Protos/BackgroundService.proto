@@ -1,0 +1,24 @@
+
+syntax = "proto3";
+
+option csharp_namespace = "BackgroundServiceRPC";
+
+package BackgroundServicePackage;
+
+// The greeting service definition.
+service BackgroundService {
+  // Sends a greeting
+  rpc GetConfig (Empty) returns (Configuration);
+  rpc SetConfig (Configuration) returns (Empty);
+  rpc ConnectSSH (Empty) returns (Empty);
+  rpc DisconnectSSH (Empty) returns (Empty);
+}
+
+message Empty {};
+
+message Configuration {
+	string ip_address = 1;
+	string port = 2;
+	string username = 3;
+	string password = 4;
+}
